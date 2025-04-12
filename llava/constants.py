@@ -31,3 +31,26 @@ DEFAULT_IM_END_TOKEN = "<im_end>"
 IMAGE_PLACEHOLDER = "<image-placeholder>"
 DEFAULT_MASK_TOKEN = "<mask>"
 DEFAULT_DEPTH_TOKEN = "<depth>"
+
+
+# STAug Constants
+
+REGION_TOKEN_START = "<|region_token_start|>"
+REGION_TOKEN_END = "<|region_token_end|>",
+REGION_X0_TOKEN = "<|x_0|>"
+REGION_X1_TOKEN = "<|x_1|>"
+REGION_X2_TOKEN = "<|x_2|>"
+REGION_X3_TOKEN = "<|x_3|>"
+REGION_X4_TOKEN = "<|x_4|>"
+REGION_X5_TOKEN = "<|x_5|>"
+REGION_X6_TOKEN = "<|x_6|>"
+REGION_X7_TOKEN = "<|x_7|>"
+REGION_Y0_TOKEN = "<|y_0|>"
+REGION_Y1_TOKEN = "<|y_1|>"
+REGION_Y2_TOKEN = "<|y_2|>"
+REGION_Y3_TOKEN = "<|y_3|>"
+REGION_Y4_TOKEN = "<|y_4|>"
+REGION_Y5_TOKEN = "<|y_5|>"
+REGION_Y6_TOKEN = "<|y_6|>"
+REGION_Y7_TOKEN = "<|y_7|>"
+ENHANCE_IMG_PLACEHOLDER = "<|enhance_pad|>" 
