@@ -53,6 +53,7 @@ class PureAttentionPoolingBlock(nn.Module):
 class STAugVisionTower(VisionTower):
     def __init__(self, model_name_or_path: str, config: PretrainedConfig, state_dict=None):
         super().__init__(model_name_or_path, config)
+        model_name_or_path = "google/siglip-so400m-patch14-384" # hard-coded
         self.image_processor = SiglipImageProcessor.from_pretrained(model_name_or_path)
         self.vision_tower = SiglipVisionModel.from_pretrained(
             model_name_or_path,
