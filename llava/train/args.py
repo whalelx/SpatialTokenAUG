@@ -59,6 +59,9 @@ class ModelArguments:
     # SpatialRGPT / RegionGPT
     enable_region: bool = field(default=True)
     enable_depth: bool = field(default=True)
+    # STAug
+    enable_attn_pool: bool = field(default=False)
+    image_token_pooling_ratio: float = field(default=0.5)
 
 
 @dataclass

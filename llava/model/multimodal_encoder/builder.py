@@ -8,6 +8,7 @@ from .clip_encoder import CLIPVisionTower, CLIPVisionTowerS2
 from .intern_encoder import InternVisionTower
 from .radio_encoder import RADIOVisionTower
 from .siglip_encoder import SiglipVisionTower, SiglipVisionTowerS2
+from .staug_encoder import STAugVisionTower, STAugVisionTowerS2
 
 
 def build_vision_tower(model_name_or_path: str, config: PretrainedConfig) -> PreTrainedModel:
@@ -36,11 +37,16 @@ def build_vision_tower(model_name_or_path: str, config: PretrainedConfig) -> Pre
             vision_tower = CLIPVisionTowerS2(model_name_or_path, config)
         else:
             vision_tower = CLIPVisionTower(model_name_or_path, config)
-    elif "siglip" in vision_tower_name:
+    elif "siglip" in vision_tower_name.lower():
         if use_s2:
             vision_tower = SiglipVisionTowerS2(model_name_or_path, config)
         else:
             vision_tower = SiglipVisionTower(model_name_or_path, config)
+    elif "staug" in vision_tower_name.lower():
+        if use_s2:
+            vision_tower = STAugVisionTowerS2(model_name_or_path, config)
+        else:
+            vision_tower = STAugVisionTower(model_name_or_path, config)
     else:
         raise ValueError(f"Unknown vision tower: {model_name_or_path}")
 

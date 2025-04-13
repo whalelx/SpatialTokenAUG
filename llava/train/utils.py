@@ -81,6 +81,9 @@ def prepare_config_for_training(
     # Added for SpatialRGPT / RegionGPT
     config.enable_region = model_args.enable_region
     config.enable_depth = model_args.enable_depth
+    # Added for attention pooling
+    config.enable_attn_pool = model_args.enable_attn_pool
+    config.image_token_pooling_ratio = model_args.image_token_pooling_ratio
     # set tuning modules
     config.tune_language_model = training_args.tune_language_model
     config.tune_vision_tower = training_args.tune_vision_tower

@@ -13,6 +13,8 @@ class LlavaConfig(PretrainedConfig):
         architectures=None,
         enable_region=None,
         enable_depth=None,
+        enable_attn_pool=False,
+        image_token_pooling_ratio=0.5,
         resume_path=None,
         hidden_size=None,
         mm_hidden_size=None,
@@ -41,6 +43,8 @@ class LlavaConfig(PretrainedConfig):
 
         self.enable_region = enable_region
         self.enable_depth = enable_depth
+        self.enable_attn_pool = enable_attn_pool
+        self.image_token_pooling_ratio = image_token_pooling_ratio
         self.hidden_size = hidden_size
         self.mm_hidden_size = mm_hidden_size
         self.image_aspect_ratio = image_aspect_ratio
