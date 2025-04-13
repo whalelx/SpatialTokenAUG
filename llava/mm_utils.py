@@ -421,10 +421,16 @@ def process_depth(depth_file, data_args, depth_folder):
 def process_image(image_file, data_args, image_folder, return_info=False):
     processor = data_args.image_processor
     if isinstance(image_file, str):
+        crop_position=None
+        if "_" in image_file.rsplit(".")[-1]:
+            image_file, crop_position = image_file.rsplit("_", 1)
+            crop_position = tuple(map(int, crop_position.split(",")))
         if image_folder is not None:
             image = Image.open(os.path.join(image_folder, image_file)).convert("RGB")
         else:
             image = Image.open(image_file).convert("RGB")
+        if crop_position is not None:
+            image = image.crop(crop_position)
     else:
         # image is stored in bytearray
         image = image_file
@@ -474,6 +480,7 @@ def process_image(image_file, data_args, image_folder, return_info=False):
         return image
 
 
+# dataset没有用到
 def process_regions(masks, image_processor, data_args):
     # prepare processor
     mask_processer = copy.deepcopy(image_processor)
