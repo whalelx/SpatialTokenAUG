@@ -2,12 +2,21 @@ import cv2
 import copy
 import os
 import json
+import re
+import tqdm
 import numpy as np
 
-# from transformers import HfArgumentParser
-# from llava_gx.data.dataset import LazySupervisedSpatialDataset
-# from llava.train.args import DataArguments
-# from transformers import PretrainedConfig, SiglipImageProcessor, SiglipVisionModel
+
+def replace_with_list(s, replacements):
+    counter = {'index': 0}
+
+    def replacement_function(match):
+        replacement = replacements[counter['index']]
+        counter['index'] += 1
+        return replacement
+
+    result = re.sub(r'<mask> <depth>', replacement_function, s)
+    return result
 
 
 def clamp(bbox, image_h, image_w):
@@ -22,9 +31,10 @@ def clamp(bbox, image_h, image_w):
     return x1, y1, x2, y2
 
 
-def process_msg(conversations, image_np, mask_np, image_name, bbox):
+def process_msg(conversations, image_np, mask_np, image_name, bbox, save_dir):
     mask_count = 0
     conv_count = len(conversations) // 2
+    output_list = []
     for idx in range(conv_count):
         q_idx = 2 * idx 
         a_idx = 2 * idx + 1
@@ -35,7 +45,10 @@ def process_msg(conversations, image_np, mask_np, image_name, bbox):
         question = conversations[q_idx]["value"]
         answer = conversations[a_idx]["value"]
         
-        tmp_count = question.count("<mask>")
+        tmp_count = question.count("<mask> <depth>")
+        replacements = [f"Region [{i}]" for i in range(tmp_count)]
+        new_question = replace_with_list(question, replacements)
+        new_question = re.sub(r"<image>\n", "", new_question)
 
         mask_idx_list = [mask_count + i for i in range(tmp_count)]
         mask_count += tmp_count
@@ -69,35 +82,17 @@ def process_msg(conversations, image_np, mask_np, image_name, bbox):
                 cv2.putText(masked_image, label, (text_x, text_y), font, font_scale, text_color, font_thickness)
 
 
-        save_dir = os.path.join("tmp", image_name)
-        os.makedirs(save_dir, exist_ok=True)
-        save_path = os.path.join(save_dir , str(idx) +  ".png")
-        cv2.imwrite(save_path, masked_image)
+        save_image_dir = os.path.join(save_dir, image_name)
+        os.makedirs(save_image_dir, exist_ok=True)
+        save_image_path = os.path.join(save_image_dir , str(idx) +  ".png")
+        cv2.imwrite(save_image_path, masked_image)
+        
+        json_image_path = os.path.join(image_name, str(idx) +  ".png")
+        
+        msg = {"question": new_question, "answer": answer, "image_path": json_image_path}
+        output_list.append(msg)
 
-
-
-
-
-
-def process_msg2(image_np, mask_np, image_name):
-    # image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
-
-    num_mask = mask_np.shape[0]
-    for idx in range(num_mask):
-        mask_ = mask_np[idx]
-        mask_new = np.zeros_like(image_np)
-        mask_new[:,:,0] = mask_ * 255
-    
-        alpha = 0.5  # toumingdu
-        masked_image = cv2.addWeighted(image_np, 1.0, mask_new, alpha, 0)
-   
-        # print(masked_image)
-        # print((masked_image == image_np).all())
-   
-        save_dir = os.path.join("tmp", image_name)
-        os.makedirs(save_dir, exist_ok=True)
-        save_path = os.path.join(save_dir , str(idx) +  ".png")
-        cv2.imwrite(save_path, masked_image)
+    return output_list
 
 
 def process_mask(rles, bboxes, image_info, modality="mask"):
@@ -123,29 +118,32 @@ def process_mask(rles, bboxes, image_info, modality="mask"):
 data_path = "/data/spatialRGPT_test/train.json"
 image_folder = "/data/spatialRGPT_test/train"
 
-# parser = HfArgumentParser(DataArguments)
-# data_args = parser.parse_args_into_dataclasses()[0]
-# data_args.image_aspect_ratio = None
+save_json = "/data/spatialRGPT_test2/jsons"
+save_dir = "/data/spatialRGPT_test2/images"
+os.makedirs(save_json, exist_ok=True)
+os.makedirs(save_dir, exist_ok=True)
 
-# model_name_or_path= "google/siglip-so400m-patch14-384"
 
 with open(data_path) as r_op:
     data = json.load(r_op)
 
-for item in data:
+for item in tqdm.tqdm(data):
     filename = item["filename"]
-    print(filename)
-    conversations = item["conversations"]
-    rle = item["rle"]
-    bbox = item["bbox"]
-    
-    image_path = os.path.join(image_folder, filename + ".jpg")
-    raw_image = cv2.imread(image_path)
+    with open(os.path.join(save_json, filename + ".json"), "w") as w_op:
+        print(filename)
+        conversations = item["conversations"]
+        rle = item["rle"]
+        bbox = item["bbox"]
+        
+        image_path = os.path.join(image_folder, filename + ".jpg")
+        raw_image = cv2.imread(image_path)
 
-    height, width = raw_image.shape[:2]
-    image_info = {"height": height, "width": width}
+        height, width = raw_image.shape[:2]
+        image_info = {"height": height, "width": width}
+        
+        masks = process_mask(rle, bbox, image_info)
+        output_list = process_msg(conversations, raw_image, masks, filename, bbox, save_dir)
     
-    masks = process_mask(rle, bbox, image_info)
-    
-    # process_msg(raw_image, conversations, mask)
-    process_msg(conversations, raw_image, masks, filename, bbox)
+        json.dump(output_list, w_op, indent=4)
+
+
