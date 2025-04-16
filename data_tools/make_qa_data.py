@@ -145,11 +145,15 @@ def process_mask(rles, bboxes, image_info, modality="mask"):
 
 
 
-data_path = "/data/spatialRGPT_test/train.json"
-image_folder = "/data/spatialRGPT_test/train"
+# data_path = "/data/spatialRGPT_test/train.json"
+# image_folder = "/data/spatialRGPT_test/train"
+chunk_name = "00000000"
+data_path = "/data/spatialRGPT_split/" + chunk_name + ".json"
+image_folder = "/data/dataset-spatial-reasoning/openimagev7/train"
 
-save_json = "/data/spatialRGPT_test3/jsons"
-save_dir = "/data/spatialRGPT_test3/images"
+save_json = "/data/spatialRGPT_qa/jsons/" + chunk_name
+save_dir = "/data/spatialRGPT_qa/images/" + chunk_name
+
 os.makedirs(save_json, exist_ok=True)
 os.makedirs(save_dir, exist_ok=True)
 
@@ -163,7 +167,7 @@ for item in tqdm.tqdm(data):
     with open(os.path.join(save_json, filename + ".json"), "w") as w_op:
         print(filename)
         conversations = item["conversations"]
-        rle = item["rle"]
+        # rle = item["rle"]
         bbox = item["bbox"]
 
         image_path = os.path.join(image_folder, filename + ".jpg")
