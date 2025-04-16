@@ -19,7 +19,11 @@ sys_prompt1 = """## Role: Visual-Spatial Reasoning Expert.
 }
 """
 
-sys_prompt = "The targets in region are outlined in light blue boxes and each box is labeled with a number in the top-left corner. Describe the object in Region [0] and Region [1]."
+sys_prompt = "The targets in region are outlined in light blue boxes and each box is labeled with a number in the top-left corner. \
+    Describe the object in Region [0] and Region [1]. \
+    Identify the most fine-grained but whold object in the bounding box.\
+    for example: if an individual is riding a motorcycle and only the motorcycle is bounded, the object should be the motorcycle rather than the person\
+        "
 
  
 # Function to encode the image
@@ -65,9 +69,9 @@ if __name__ == "__main__":
     # answer = run_single_image_idealab(question, "0.png")
     # print(answer)
 
-    image_dir = "/data/spatialRGPT_test2/images"
+    image_dir = "/data/spatialRGPT_test3/images"
 
-    with open("/data/spatialRGPT_test2/jsons/00fe670dda70e4b4.json") as r_op:
+    with open("/data/spatialRGPT_test3/jsons/00fe670dda70e4b4.json") as r_op:
         data = json.load(r_op)
         for datum in data:
             qu = datum["question"]
