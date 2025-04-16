@@ -31,7 +31,7 @@ def clamp(bbox, image_h, image_w):
     return x1, y1, x2, y2
 
 
-def process_msg(conversations, image_np, mask_np, image_name, bbox, save_dir):
+def process_msg(conversations, image_np, mask_np, bbox, image_name, save_dir):
     mask_count = 0
     conv_count = len(conversations) // 2
     output_list = []
@@ -46,22 +46,41 @@ def process_msg(conversations, image_np, mask_np, image_name, bbox, save_dir):
         answer = conversations[a_idx]["value"]
 
         tmp_count = question.count("<mask> <depth>")
-        replacements = [f"Region [{i}]" for i in range(tmp_count)]
-        new_question = replace_with_list(question, replacements)
-        new_question = re.sub(r"<image>\n", "", new_question)
 
+        label_list = [i for i in range(tmp_count)] 
         mask_idx_list = [mask_count + i for i in range(tmp_count)]
         mask_count += tmp_count
 
-        masked_image = copy.deepcopy(image_np)
-        for label, mask_idx in enumerate(mask_idx_list):
-            mask_ = mask_np[mask_idx]
-            mask_new = np.zeros_like(masked_image)
-            mask_new[:,:,0] = mask_ * 255
+        
+        tmp_list = []
+        for tmp_idx, mask_idx in enumerate(mask_idx_list):
+            if bbox:
+                element = bbox[mask_idx]
+            if mask_np:
+                element = mask_np[mask_idx]
 
-            alpha = 1 # toumingdu
-            # masked_image = cv2.addWeighted(masked_image, 1.0, mask_new, alpha, 0)
-            # masked_image = np.where((mask_new.sum(-1)>0).any(), mask_new, masked_image)
+            if element not in tmp_list:
+                tmp_list.append(element)
+            else:
+                tmp_idx2 = tmp_list.index(element)
+                label_list[tmp_idx] = label_list[tmp_idx2]
+
+        replacements = [f"Region [{i}]" for i in label_list]
+        new_question = replace_with_list(question, replacements)
+        new_question = re.sub(r"<image>\n", "", new_question)
+
+
+        masked_image = copy.deepcopy(image_np)
+        for label, mask_idx in zip(label_list, mask_idx_list):
+            if mask_np:
+                mask_ = mask_np[mask_idx]
+                mask_new = np.zeros_like(masked_image)
+                mask_new[:,:,0] = mask_ * 255
+
+                alpha = 1 # toumingdu
+                masked_image = cv2.addWeighted(masked_image, 1.0, mask_new, alpha, 0)
+                masked_image = np.where((mask_new.sum(-1)>0).any(), mask_new, masked_image)
+            
             if bbox:
                 box = bbox[mask_idx]
                 x1, y1, x2, y2 = clamp(box, image_info["height"], image_info["width"])
@@ -81,7 +100,6 @@ def process_msg(conversations, image_np, mask_np, image_name, bbox, save_dir):
                 text_y = icon_y + label_height - (label_height - text_size[1]) // 2
 
                 cv2.putText(masked_image, label, (text_x, text_y), font, font_scale, text_color, font_thickness)
-
 
         save_image_dir = os.path.join(save_dir, image_name)
         os.makedirs(save_image_dir, exist_ok=True)
@@ -108,7 +126,7 @@ def process_mask(rles, bboxes, image_info, modality="mask"):
         for bbox in bboxes:
             zero_mask = np.zeros((image_info["height"], image_info["width"]), dtype=np.uint8)
             x1, y1, x2, y2 = clamp(bbox, image_info["height"], image_info["width"])
-
+            # zero_mask[y1:y2, x1:x2] = 1
             # Draw only the outline of the bounding box
             # Top and bottom horizontal lines
             if y2 > y1:
@@ -141,6 +159,7 @@ with open(data_path) as r_op:
 
 for item in tqdm.tqdm(data):
     filename = item["filename"]
+    
     with open(os.path.join(save_json, filename + ".json"), "w") as w_op:
         print(filename)
         conversations = item["conversations"]
@@ -153,8 +172,8 @@ for item in tqdm.tqdm(data):
         height, width = raw_image.shape[:2]
         image_info = {"height": height, "width": width}
 
-        masks = process_mask(rle, bbox, image_info)
-        output_list = process_msg(conversations, raw_image, masks, filename, bbox, save_dir)
+        # masks = process_mask(rle, bbox, image_info)
+        output_list = process_msg(conversations, raw_image, None, bbox, filename, save_dir)
 
         json.dump(output_list, w_op, indent=4)
 
