@@ -31,7 +31,7 @@ def clamp(bbox, image_h, image_w):
     return x1, y1, x2, y2
 
 
-def process_msg(conversations, image_np, mask_np, bbox, image_name, save_dir):
+def process_msg(conversations, image_np, mask_np, bbox, image_info, image_name, save_dir):
     mask_count = 0
     conv_count = len(conversations) // 2
     output_list = []
@@ -144,40 +144,45 @@ def process_mask(rles, bboxes, image_info, modality="mask"):
 
 
 
+def run(chunk_name):
+    data_path = "/data/spatialRGPT_split/" + chunk_name + ".json"
+    # image_folder = "/data/spatialRGPT/train"
+    image_folder = "/data/dataset-spatial-reasoning/openimagev7/train"
 
-# data_path = "/data/spatialRGPT_test/train.json"
-# image_folder = "/data/spatialRGPT_test/train"
-chunk_name = "00000000"
-data_path = "/data/spatialRGPT_split/" + chunk_name + ".json"
-image_folder = "/data/dataset-spatial-reasoning/openimagev7/train"
+    save_json = "/data/spatialRGPT_qa/jsons/" + chunk_name
+    save_dir = "/data/spatialRGPT_qa/images/" + chunk_name
 
-save_json = "/data/spatialRGPT_qa/jsons/" + chunk_name
-save_dir = "/data/spatialRGPT_qa/images/" + chunk_name
-
-os.makedirs(save_json, exist_ok=True)
-os.makedirs(save_dir, exist_ok=True)
+    os.makedirs(save_json, exist_ok=True)
+    os.makedirs(save_dir, exist_ok=True)
 
 
-with open(data_path) as r_op:
-    data = json.load(r_op)
+    with open(data_path) as r_op:
+        data = json.load(r_op)
 
-for item in tqdm.tqdm(data):
-    filename = item["filename"]
-    
-    with open(os.path.join(save_json, filename + ".json"), "w") as w_op:
-        print(filename)
-        conversations = item["conversations"]
-        # rle = item["rle"]
-        bbox = item["bbox"]
+    for item in tqdm.tqdm(data):
+        filename = item["filename"]
+        
+        with open(os.path.join(save_json, filename + ".json"), "w") as w_op:
+            print(filename)
+            conversations = item["conversations"]
+            # rle = item["rle"]
+            bbox = item["bbox"]
 
-        image_path = os.path.join(image_folder, filename + ".jpg")
-        raw_image = cv2.imread(image_path)
+            image_path = os.path.join(image_folder, filename + ".jpg")
+            raw_image = cv2.imread(image_path)
 
-        height, width = raw_image.shape[:2]
-        image_info = {"height": height, "width": width}
+            height, width = raw_image.shape[:2]
+            image_info = {"height": height, "width": width}
 
-        # masks = process_mask(rle, bbox, image_info)
-        output_list = process_msg(conversations, raw_image, None, bbox, filename, save_dir)
+            # masks = process_mask(rle, bbox, image_info)
+            output_list = process_msg(conversations, raw_image, None, bbox, image_info, filename, save_dir)
 
-        json.dump(output_list, w_op, indent=4)
+            json.dump(output_list, w_op, indent=4)
+
+
+if __name__ == "__main__":
+    chunk_list = ["00000003", "00000004", "00000005", "00000006", "00000007", "00000008", "00000009"]
+    for chunk_name in chunk_list:
+        run(chunk_name)
+
 
