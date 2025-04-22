@@ -447,24 +447,23 @@ class LlavaMetaForCausalLM(ABC):
 
         # Extract text embeddings for attention pooling if using STAugVisionTower
         vision_tower = self.get_vision_tower()
-        if "STAugVisionTower" in vision_tower.__class__.__name__ and getattr(self.config, "enable_attn_pool", False):
-            input_ids_copy = input_ids.clone()
-            input_ids_copy[input_ids_copy == IMAGE_TOKEN_INDEX] = 0
+        if "STAugVisionTower" in vision_tower.__class__.__name__:
+            if getattr(self.config, "enable_attn_pool", False):
+                input_ids_copy = input_ids.clone()
+                input_ids_copy[input_ids_copy == IMAGE_TOKEN_INDEX] = 0
+                with torch.no_grad():
+                    text_embeds = self.llm.model.embed_tokens(input_ids_copy)
+            else: 
+                text_embeds = None
 
-            with torch.no_grad():
-                # text_token_count = min(200, input_ids.shape[1])  # Use up to 10 tokens
-                # text_tokens = input_ids_copy[:, :text_token_count]
-                text_tokens = input_ids_copy
-                text_embeds = self.llm.model.embed_tokens(text_tokens)
-
-            pooling_ratio = getattr(self.config, "image_token_pooling_ratio", 0.5)
-            lres_tower_features = vision_tower.attention_pooling(
+            pooling_ratio = getattr(self.config, "image_token_pooling_ratio", 0.2)
+            reduced_lres_tower_features, kept_token_indices = vision_tower.attention_pooling(
                 lres_tower_features,
                 text_features=text_embeds,
                 pooling_ratio=pooling_ratio
             )
 
-        image_features = self.get_mm_projector()(lres_tower_features).to(self.device)
+        image_features = self.get_mm_projector()(reduced_lres_tower_features).to(self.device)
 
         new_input_embeds = []
         new_labels = []

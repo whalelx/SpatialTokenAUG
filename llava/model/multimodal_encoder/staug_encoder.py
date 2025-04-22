@@ -16,10 +16,9 @@ class LayerNorm(nn.LayerNorm):
         x = F.layer_norm(x, self.normalized_shape, self.weight, self.bias, self.eps)
         return x.to(orig_type)
     
-
 class PureAttentionPoolingBlock(nn.Module):
     """
-    Just a pure attn_pooling implementation, without ln_post, without projection, no mormalized_final
+    Just a pure attn_pooling implementation, without ln_post, without projection, no normalized_final
     """
 
     def __init__(
@@ -35,6 +34,11 @@ class PureAttentionPoolingBlock(nn.Module):
         self.ln_q = norm_layer(context_dim)
         self.ln_k = norm_layer(context_dim)
         self.ln_v = norm_layer(context_dim)
+        self.score_mlp = nn.Sequential(
+            nn.Linear(context_dim, context_dim),
+            nn.GELU(),
+            nn.Linear(context_dim, 1)
+        )
         self.need_weights=need_weights
 
     def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, output_attn_weights=False, average_attn_weights=True):
@@ -45,10 +49,16 @@ class PureAttentionPoolingBlock(nn.Module):
 
         if self.need_weights or output_attn_weights:
             out, attn_weights = self.attn(q, k, v, need_weights=True, average_attn_weights=average_attn_weights)
-            return F.normalize(out, dim=-1), attn_weights
         else:
             out = self.attn(q, k, v, need_weights=False)[0]
-            return F.normalize(out, dim=-1)
+        
+        out = F.normalize(out, dim=-1)
+        token_importance = self.score_mlp(out)
+        token_importance = F.softmax(token_importance, dim=-1)
+        if self.need_weights or output_attn_weights:
+            return token_importance, attn_weights
+        else:
+            return token_importance, None
 
 class STAugVisionTower(VisionTower):
     def __init__(self, model_name_or_path: str, config: PretrainedConfig, state_dict=None):
@@ -116,57 +126,33 @@ class STAugVisionTower(VisionTower):
         # Example of a simple augmentation (identity for now):
         return features
 
-    def attention_pooling(self, image_features, text_features=None, pooling_ratio=0.5):
-        if text_features is None:
-            return image_features
-        else:
-            pooled_img_feature = self.attn_pooling(image_features, text_features)
-            return pooled_img_feature
+    def attention_pooling(self, image_features, text_features=None, pooling_ratio=0.2):
+        """
+        Apply multi-head attention pooling to reduce the number of image tokens.
 
-        # """
-        # Apply attention pooling to reduce the number of image tokens.
+        Args:
+            image_features: Image features from the vision tower [B, N_img, D]
+            text_features: Text features to use as K/V [B, N_text, D]
+            pooling_ratio: Ratio of tokens to keep (0.2 means keep top 20%)
 
-        # Args:
-        #     image_features: Image features from the vision tower [B, N_img, D]
-        #     text_features: Text features to use as queries [B, N_text, D]
-        #                   If None, use a learned query vector
-        #     pooling_ratio: Ratio of tokens to keep (0.5 means reduce by half)
+        Returns:
+            Pooled image features with reduced tokens
+        """
+        if text_features is not None:
+            return image_features, None
 
-        # Returns:
-        #     Pooled image features with reduced tokens
-        # """
-        # batch_size, num_img_tokens, hidden_size = image_features.shape
-        # num_tokens_to_keep = max(1, int(num_img_tokens * pooling_ratio))
+        batch_size, num_img_tokens, hidden_size = image_features.shape
+        num_tokens_to_keep = max(1, int(num_img_tokens * pooling_ratio))
 
-        # # If no text features provided, use a learned query or the first token
-        # if text_features is None:
-        #     # Use the first token (CLS) as the query
-        #     queries = self.query_proj(image_features[:, 0:1, :])
-        # else:
-        #     # Use text features as queries
-        #     queries = self.query_proj(text_features)
+        token_importance, _ = self.attn_pooling(image_features, text_features)
 
-        # # Project image features to keys and values
-        # keys = self.key_proj(image_features)
-        # values = self.value_proj(image_features)
+        _, top_indices = torch.topk(token_importance, num_tokens_to_keep, dim=1)
 
-        # # Compute attention scores
-        # attention_scores = torch.matmul(queries, keys.transpose(-2, -1)) * self.attention_scale
+        pooled_features = torch.stack([
+            image_features[b, top_indices[b]] for b in range(batch_size)
+        ])
 
-        # # Get the top-k attention scores for each query
-        # # Sum across all queries to get importance of each image token
-        # token_importance = attention_scores.sum(dim=1)  # [B, N_img]
-
-        # # Select top-k tokens based on importance
-        # _, top_indices = torch.topk(token_importance, num_tokens_to_keep, dim=1)
-        # top_indices = top_indices.sort(dim=1)[0]  # Sort indices to maintain spatial order
-
-        # # Gather the top-k tokens for each batch
-        # pooled_features = torch.stack([
-        #     image_features[b, top_indices[b]] for b in range(batch_size)
-        # ])
-
-        # return pooled_features
+        return pooled_features, top_indices     
 
 # TODO @lx support S2
 class STAugVisionTowerS2(VisionTowerS2):
@@ -262,3 +248,4 @@ class STAugVisionTowerS2(VisionTowerS2):
         ])
 
         return pooled_features
+
