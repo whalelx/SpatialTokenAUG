@@ -64,3 +64,13 @@ def register_datasets_mixtures():
         description="900K SFT data by SpatialRGPT (submission) w/ depth (template+LLaMa rephrased).",
     )
     add_dataset(spatialrgpt_ft)
+
+    # /PATH=/data/spatialRGPT_qa/
+    staug_st_ft = Dataset(
+        dataset_name="staug_st_ft",
+        dataset_type="staug",
+        data_path="/PATH/train0.json",
+        image_path="/PATH/images",
+        description="Special token pretraining data for the STAug model.",
+    )
+    add_dataset(staug_st_ft)

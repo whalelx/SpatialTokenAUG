@@ -22,8 +22,7 @@ torchrun --nproc_per_node=8 \
     --master_addr $MASTER_ADDR --node_rank=$CURRENT_RANK \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero2.json \
-    #  TODO @lx
-    --data_mixture spatialrgpt_ft+SFT_DATA \
+    --data_mixture staug_st_ft \
     --vision_tower staug/google/siglip-so400m-patch14-384 \
     --enable_attn_pool False \
     --model_name_or_path ./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-sft \

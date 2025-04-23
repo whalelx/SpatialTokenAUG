@@ -1791,6 +1791,64 @@ class LazySupervisedSpatialDataset(Dataset):
 
         return data_dict
 
+# Added for STAug
+class LazySupervisedSTAugDataset(Dataset):
+    def __init__(
+        self,
+        data_path: str,
+        image_folder: str,
+        tokenizer: transformers.PreTrainedTokenizer,
+        data_args: DataArguments,
+        training_args: TrainingArguments,
+    ):
+        super().__init__()
+        logging.warning("Loading STAUG data...")
+        self.enable_depth = False
+        self.depth_folder = None
+
+        with open(data_path) as f:
+            list_data_dict = json.load(f)
+
+        print("Total STAUG Samples ", len(list_data_dict), " ", data_path)
+        logging.warning("Formatting inputs...Skip in lazy mode")
+
+        self.tokenizer = tokenizer
+        self.list_data_dict = list_data_dict
+        self.data_args = data_args
+        self.image_folder = image_folder
+
+    def __len__(self):
+        return len(self.list_data_dict)
+
+    def __getitem__(self, i) -> Dict[str, torch.Tensor]:
+        sources = self.list_data_dict[i]
+        if isinstance(i, int):
+            sources = [sources]
+        assert len(sources) == 1, "Don't know why it is wrapped to a list"
+
+        # process image and masks
+        image_file = f"{self.list_data_dict[i]['filename']}.jpg"
+        image, image_info = process_image(image_file, self.data_args, self.image_folder, return_info=True)
+
+        # process conversations
+        source_conversations = preprocess_multimodal(
+            copy.deepcopy([e["conversations"] for e in sources]), self.data_args
+        )
+
+        data_dict = preprocess(
+            source_conversations,
+            self.tokenizer,
+            has_image=("filename" in self.list_data_dict[i]),
+        )
+
+        if isinstance(i, int):
+            data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
+
+        # spatialrgpt exact contains one image for each sample TODO @lx
+        assert len(image.shape) == 3
+        data_dict["image"] = image.unsqueeze(0)
+
+        return data_dict
 
 @dataclass
 class DataCollatorForSupervisedDataset:
@@ -2224,6 +2282,9 @@ def build_datasets(
             dataset_cls = DummyDataset
             if hasattr(dataset, "image_path"):
                 image_folder = dataset.image_path
+        elif dataset_type == "staug":
+            dataset_cls = LazySupervisedSTAugDataset
+            image_folder = dataset.image_path
         else:
             raise NotImplementedError(f"{dataset_type} is not supported.")
         data_args.meta_path = getattr(dataset, "meta_path", None)
