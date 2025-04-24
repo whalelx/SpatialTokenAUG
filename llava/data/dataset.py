@@ -46,7 +46,7 @@ from llava.constants import (
     IMAGE_TOKEN_INDEX,
 )
 from llava.data.datasets_mixture import DATASETS
-from llava.eval.mmmu_utils.data_utils import CAT_SHORT2LONG, construct_prompt, load_yaml, process_single_sample
+# from llava.eval.mmmu_utils.data_utils import CAT_SHORT2LONG, construct_prompt, load_yaml, process_single_sample
 from llava.mm_utils import (
     is_gemma_tokenizer,
     opencv_extract_frames,
@@ -1827,7 +1827,7 @@ class LazySupervisedSTAugDataset(Dataset):
         assert len(sources) == 1, "Don't know why it is wrapped to a list"
 
         # process image and masks
-        image_file = f"{self.list_data_dict[i]['filename']}.jpg"
+        image_file = self.list_data_dict[i]['filename']
         image, image_info = process_image(image_file, self.data_args, self.image_folder, return_info=True)
 
         # process conversations

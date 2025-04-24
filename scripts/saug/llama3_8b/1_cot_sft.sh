@@ -25,7 +25,7 @@ torchrun --nproc_per_node=8 \
     --data_mixture staug_st_ft \
     --vision_tower staug/google/siglip-so400m-patch14-384 \
     --enable_attn_pool False \
-    --model_name_or_path ./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-sft \
+    --model_name_or_path checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-sft-fixed \
     --version llama_3 \
     --mm_vision_select_feature cls_patch \
     --mm_projector mlp_downsample \

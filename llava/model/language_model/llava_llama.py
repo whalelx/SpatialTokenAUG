@@ -26,7 +26,6 @@ from transformers import (
     AutoModel,
     GenerationConfig,
     LlamaConfig,
-    LlamaForCausalLM,
     PretrainedConfig,
     PreTrainedModel,
 )

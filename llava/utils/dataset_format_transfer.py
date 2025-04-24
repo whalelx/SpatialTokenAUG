@@ -16,7 +16,8 @@ def convert_to_conversations(data):
             continue
         grouped[image_id].append({
             "question": item["question"],
-            "answer": item["answer"]
+            "answer": item["answer"],
+            "image_path": image_path
         })
 
     conversations_data = []
@@ -37,7 +38,7 @@ def convert_to_conversations(data):
                 "value": qa["answer"]
             })
         conversations_data.append({
-            "filename": image_id,
+            "filename": qa["image_path"],
             "conversations": conversation
         })
 
@@ -45,12 +46,12 @@ def convert_to_conversations(data):
 
 
 # 示例：加载 JSON 文件
-with open("your_input_file.json", "r", encoding="utf-8") as f:
+with open("/data/spatialRGPT_qa/train_20250421.json", "r", encoding="utf-8") as f:
     input_data = json.load(f)
 
 # 转换
 converted = convert_to_conversations(input_data)
 
 # 输出为新的 JSON 文件
-with open("converted_conversations.json", "w", encoding="utf-8") as f:
+with open("/data/spatialRGPT_qa/train_overfit.json", "w", encoding="utf-8") as f:
     json.dump(converted, f, indent=4, ensure_ascii=False)

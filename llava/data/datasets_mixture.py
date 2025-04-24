@@ -69,8 +69,8 @@ def register_datasets_mixtures():
     staug_st_ft = Dataset(
         dataset_name="staug_st_ft",
         dataset_type="staug",
-        data_path="/PATH/train0.json",
-        image_path="/PATH/images",
+        data_path="/data/spatialRGPT_qa/train_overfit.json",
+        image_path="/data/spatialRGPT_qa/images",
         description="Special token pretraining data for the STAug model.",
     )
     add_dataset(staug_st_ft)

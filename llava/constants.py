@@ -36,7 +36,7 @@ DEFAULT_DEPTH_TOKEN = "<depth>"
 # STAug Constants
 
 REGION_TOKEN_START = "<|region_token_start|>"
-REGION_TOKEN_END = "<|region_token_end|>",
+REGION_TOKEN_END = "<|region_token_end|>"
 REGION_X0_TOKEN = "<|x_0|>"
 REGION_X1_TOKEN = "<|x_1|>"
 REGION_X2_TOKEN = "<|x_2|>"

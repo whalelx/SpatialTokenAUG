@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional, Sequence
 import torch
 import transformers
 from torch.utils.data import Dataset
-from transformers import AutoConfig, AutoTokenizer, HfArgumentParser, LlamaForCausalLM, set_seed
+from transformers import AutoConfig, AutoTokenizer, HfArgumentParser, set_seed
 from transformers.modeling_utils import unwrap_model
 
 import llava.data.dataset as dataset
@@ -637,7 +637,7 @@ def train():
     if model_args.version == "v0":
         if tokenizer.pad_token is None:
             smart_tokenizer_and_embedding_resize(
-                special_tokens_dict=dict(pad_token="[PAD]"),
+                special_tokens_dict=["[PAD]"],
                 tokenizer=tokenizer,
                 model=model.llm,
             )
@@ -647,7 +647,7 @@ def train():
         tokenizer.pad_token = tokenizer.unk_token
         if tokenizer.pad_token is None:
             smart_tokenizer_and_embedding_resize(
-                special_tokens_dict=dict(pad_token="[PAD]"),
+                special_tokens_dict=["[PAD]"],
                 tokenizer=tokenizer,
                 model=model.llm,
             )
@@ -657,14 +657,13 @@ def train():
             conversation_lib.default_conversation = conversation_lib.conv_templates["vicuna_v1"]
 
     # Add crop tokens modify by lx
-    region_tokens = [
+    special_tokens = [
         REGION_TOKEN_START, REGION_TOKEN_END, REGION_X0_TOKEN, REGION_X1_TOKEN, REGION_X2_TOKEN, REGION_X3_TOKEN, REGION_X4_TOKEN, REGION_X5_TOKEN, REGION_X6_TOKEN, REGION_X7_TOKEN, REGION_Y0_TOKEN, REGION_Y1_TOKEN, REGION_Y2_TOKEN, REGION_Y3_TOKEN, REGION_Y4_TOKEN, REGION_Y5_TOKEN, REGION_Y6_TOKEN, REGION_Y7_TOKEN,
     ]
-    special_tokens = {"additional_special_tokens": region_tokens}
     smart_tokenizer_and_embedding_resize(special_tokens_dict=special_tokens, tokenizer=tokenizer, model=model.llm,is_special=False)
 
     # Add enhance_pad special token
-    enhance_pad_token = {"additional_special_tokens": [ENHANCE_IMG_PLACEHOLDER]}
+    enhance_pad_token = [ENHANCE_IMG_PLACEHOLDER]
     smart_tokenizer_and_embedding_resize(special_tokens_dict=enhance_pad_token, tokenizer=tokenizer, model=model.llm)
     # Add crop tokens done modify by lx 
 
