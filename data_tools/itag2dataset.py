@@ -1,6 +1,7 @@
 import jsonlines
 import json
 import os
+import tqdm
 from openai import OpenAI
 
 sys_prompt = ''' ##角色: 专业的翻译人员。
@@ -46,9 +47,9 @@ def idx2token(x1,y1,x2,y2, token_len=8):
 
 
 
-src_dir = "/data/spatialRGPT_qa/itags"
+src_dir = "/data/spatialRGPT_qa/itags/spatial_anno0428/2"
 src_data_path = "/data"
-save_name = "/data/spatialRGPT_qa/train_20250421.json"
+save_name = "/data/spatialRGPT_qa/train_20250428_2.json"
 
 
 bad_list = []
@@ -56,7 +57,8 @@ unlabeled_list = []
 
 
 dialogue_list = []
-for file_name in sorted(os.listdir(src_dir)):
+for file_name in tqdm.tqdm(sorted(os.listdir(src_dir))):
+    print(file_name)
     file_path = os.path.join(src_dir, file_name)
 
     with jsonlines.open(file_path, "r") as r_op:
@@ -69,19 +71,37 @@ for file_name in sorted(os.listdir(src_dir)):
                 unlabeled_list.append(item)
                 continue
 
-            if ("图片存在问题" in item["请对数据质量进行评估"] or
-                "问答正确性难以判断" in item["请对数据质量进行评估"] or
-                "其他问题" in item["请对数据质量进行评估"]):
-                # 质量不合格
-                continue
-            elif "问答错误" in item["请对数据质量进行评估"]:
-                dialogue = item["若回答错误，请修正(英文)"]
-                assert(dialogue is not None)
-            elif "完全正确" in item["请对数据质量进行评估"]:
-                dialogue = item["dialogue"]
+            if isinstance(item["请对数据质量进行评估"], str):
+                if ("图片存在问题" == item["请对数据质量进行评估"] or
+                    "问答正确性难以判断" == item["请对数据质量进行评估"] or
+                    "其他问题" == item["请对数据质量进行评估"]):
+                    # 质量不合格
+                    continue
+                elif "问答错误" == item["请对数据质量进行评估"]:
+                    dialogue = item["若回答错误，请修正(英文)"]
+                    assert(dialogue is not None)
+                elif "完全正确" == item["请对数据质量进行评估"]:
+                    dialogue = item["dialogue"]
+                else:
+                    bad_list.append(item)
+
+            elif isinstance(item["请对数据质量进行评估"], list):
+                if ("图片存在问题" in item["请对数据质量进行评估"] or
+                    "问答正确性难以判断" in item["请对数据质量进行评估"] or
+                    "其他问题" in item["请对数据质量进行评估"]):
+                    # 质量不合格
+                    continue
+                elif "问答错误" in item["请对数据质量进行评估"]:
+                    dialogue = item["若回答错误，请修正(英文)"]
+                    assert(dialogue is not None)
+                elif "完全正确" in item["请对数据质量进行评估"]:
+                    dialogue = item["dialogue"]
+                else:
+                    bad_list.append(item)
+
             else:
-                # raise ValueError("Value Error!") 
-                bad_list.append(item)
+                raise ValueError("Value Error!") 
+
 
             # {"orientation":0,"objects":[{"polygon":{"ptList":[{"x":38.84626517397822,"y":100.47260938116084},{"x":273.9949519595692,"y":100.47260938116084},{"x":273.9949519595692,"y":306.762150071472},{"x":38.84626517397822,"y":306.762150071472}]},"name":"正常男性的手臂长度为70-80厘米之间","type":1,"id":"c97a476f-12bd-445c-92e6-556da5b5ed67","color":"#9254DE","result":{"请对该目标进行简要描述(中文)":"正常男性的手臂长度为70-80厘米之间","该目标和问答相关的原因是(中文)":"题目提到它们之间相距 1.42 英寸，很明显是错误的"},"lineStyle":"solid"}],"width":683,"height":1024}
 
@@ -99,7 +119,9 @@ for file_name in sorted(os.listdir(src_dir)):
             with open(json_path, "r") as r_op2:
                 data = json.load(r_op2)
                 json_msg = data[json_idx]
-           
+          
+            print(json_path)
+            print(json_msg)
             raw_mask_list = json_msg["mask_list"]    # x1, y1, x2, y2
             raw_region_list = json_msg["region_list"]
             raw_image_width = json_msg["image_width"] 
@@ -179,8 +201,21 @@ for file_name in sorted(os.listdir(src_dir)):
             save_image_name = "/".join(image_name.split("/")[-5:])
             dialogue["image_path"] = save_image_name
             
-            print("#" * 50)
-            print(dialogue)
+            '''
+            template = {
+                "filename": save_image_name,
+                "conversations": [
+                {
+                    "from": "human",
+                    "value": "<image>\n" + "The question related to spatial reasoning is: " + dialogue["question"]
+                },
+                {
+                    "from": "gpt",
+                    "value": dialogue["cot"]
+                }]
+        
+            }
+            '''
             dialogue_list.append(dialogue)
 
 

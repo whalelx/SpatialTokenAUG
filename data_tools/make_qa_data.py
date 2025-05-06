@@ -31,7 +31,7 @@ def clamp(bbox, image_h, image_w):
     return x1, y1, x2, y2
 
 
-def process_msg(conversations, image_np, mask_np, bbox, image_info, image_name, save_dir):
+def process_msg(conversations, image_np, mask_np, bbox, image_name, save_dir, image_info):
     mask_count = 0
     conv_count = len(conversations) // 2
     output_list = []
@@ -71,6 +71,8 @@ def process_msg(conversations, image_np, mask_np, bbox, image_info, image_name, 
 
 
         masked_image = copy.deepcopy(image_np)
+        mask_list = []
+        region_list = []
         for label, mask_idx in zip(label_list, mask_idx_list):
             if mask_np:
                 mask_ = mask_np[mask_idx]
@@ -100,6 +102,9 @@ def process_msg(conversations, image_np, mask_np, bbox, image_info, image_name, 
                 text_y = icon_y + label_height - (label_height - text_size[1]) // 2
 
                 cv2.putText(masked_image, label, (text_x, text_y), font, font_scale, text_color, font_thickness)
+                
+                mask_list.append([x1, y1, x2, y2])
+                region_list.append(label)
 
         save_image_dir = os.path.join(save_dir, image_name)
         os.makedirs(save_image_dir, exist_ok=True)
@@ -108,7 +113,9 @@ def process_msg(conversations, image_np, mask_np, bbox, image_info, image_name, 
 
         json_image_path = os.path.join(image_name, str(idx) +  ".png")
 
-        msg = {"question": new_question, "answer": answer, "image_path": json_image_path}
+        msg = {"question": new_question, "answer": answer, "image_path": json_image_path,
+               "mask_list": mask_list, "region_list": region_list, 
+               "image_width": masked_image.shape[1], "image_height": masked_image.shape[0]}
         output_list.append(msg)
 
     return output_list
@@ -144,10 +151,11 @@ def process_mask(rles, bboxes, image_info, modality="mask"):
 
 
 
+
+
 def run(chunk_name):
     data_path = "/data/spatialRGPT_split/" + chunk_name + ".json"
-    # image_folder = "/data/spatialRGPT/train"
-    image_folder = "/data/dataset-spatial-reasoning/openimagev7/train"
+    image_folder = "/data/spatialRGPT/train"
 
     save_json = "/data/spatialRGPT_qa/jsons/" + chunk_name
     save_dir = "/data/spatialRGPT_qa/images/" + chunk_name
@@ -175,13 +183,15 @@ def run(chunk_name):
             image_info = {"height": height, "width": width}
 
             # masks = process_mask(rle, bbox, image_info)
-            output_list = process_msg(conversations, raw_image, None, bbox, image_info, filename, save_dir)
+            output_list = process_msg(conversations, raw_image, None, bbox, filename, save_dir, image_info)
 
             json.dump(output_list, w_op, indent=4)
 
 
+
 if __name__ == "__main__":
-    chunk_list = ["00000003", "00000004", "00000005", "00000006", "00000007", "00000008", "00000009"]
+    chunk_list = ["00000004"]
+    # chunk_list = ["00000005", "00000006", "00000007", "00000008", "00000009"]
     for chunk_name in chunk_list:
         run(chunk_name)
 

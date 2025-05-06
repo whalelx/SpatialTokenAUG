@@ -88,7 +88,7 @@ def run(chunk_name):
 
 
 if __name__ == "__main__":
-    chunk_list = ["00000000"]
+    chunk_list = ["00000001", "00000002", "00000003", "00000004", "00000005", "00000006", "00000007", "00000008", "00000009"]
     for chunk_name in chunk_list:
         run(chunk_name)
 
